@@ -61,8 +61,8 @@ export default function App(){
   useEffect(()=>{ rebuildModel() }, [s.layers, s.activation, s.learningRate, s.l2, s.features])
 
   useEffect(()=>{
-    const m = model; // capture snapshot to satisfy TS nullability
-    if (!s.running || !m || !data) return
+    if (!s.running || !model || !data) return
+    const m = model as tf.LayersModel   // assert non-null after guard
     const feat = makeFeatureFn(s.features)
     const trainXY = data.xs.slice(0, splitIdx)
     const trainY  = data.ys.slice(0, splitIdx)
