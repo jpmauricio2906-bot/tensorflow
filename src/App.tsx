@@ -61,7 +61,8 @@ export default function App(){
   useEffect(()=>{ rebuildModel() }, [s.layers, s.activation, s.learningRate, s.l2, s.features])
 
   useEffect(()=>{
-    if (!s.running || !model || !data) return
+    const m = model; // capture snapshot to satisfy TS nullability
+    if (!s.running || !m || !data) return
     const feat = makeFeatureFn(s.features)
     const trainXY = data.xs.slice(0, splitIdx)
     const trainY  = data.ys.slice(0, splitIdx)
@@ -69,7 +70,7 @@ export default function App(){
     let cancelled = false
     async function step(){
       if (cancelled) return
-      const h = await model.fit(X, Y, { epochs: 1, batchSize: s.batchSize, shuffle: true, verbose: 0 })
+      const h = await m.fit(X, Y, { epochs: 1, batchSize: s.batchSize, shuffle: true, verbose: 0 })
       epochRef.current += 1
       const loss = (h.history.loss?.[0] as number)?.toFixed(4)
       const acc = (h.history.acc?.[0] as number | undefined)
