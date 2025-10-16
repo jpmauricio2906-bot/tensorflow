@@ -1,10 +1,22 @@
 import React from 'react'
-import type { Settings, DatasetKind, ActivationKind } from '../types'
+import type { Settings, DatasetKind, ActivationKind, ProblemType } from '../types'
 
-export default function Controls(p:{ s:Settings; set:(patch:Partial<Settings>)=>void; onAddLayer:()=>void; onRemoveLayer:(idx:number)=>void; onChangeLayerUnits:(idx:number,units:number)=>void; onReset:()=>void; onTrainToggle:()=>void; onRegenData:()=>void; }){
-  const { s } = p
-  const dsOptions: DatasetKind[] = ['circle','xor','gaussian','spiral','linear']
-  const acts: ActivationKind[] = ['tanh','relu','sigmoid','linear']
+interface Props {
+  s: Settings;
+  set: (patch: Partial<Settings>) => void;
+  onAddLayer: () => void;
+  onRemoveLayer: (idx:number) => void;
+  onChangeLayerUnits: (idx:number, units:number)=>void;
+  onReset: () => void;
+  onTrainToggle: () => void;
+  onRegenData: () => void;
+}
+
+export default function Controls(p: Props){
+  const { s } = p;
+  const dsOptions: DatasetKind[] = ['circle','xor','gaussian','spiral','linear'];
+  const acts: ActivationKind[] = ['tanh','relu','sigmoid','linear'];
+  const problems: ProblemType[] = ['classification','regression'];
 
   return (
     <aside className="sidebar">
@@ -17,17 +29,25 @@ export default function Controls(p:{ s:Settings; set:(patch:Partial<Settings>)=>
           </select>
         </div>
         <div className="row">
+          <label>Problem Type</label>
+          <select value={s.problemType} onChange={e=>p.set({problemType: e.target.value as ProblemType})}>
+            {problems.map(pt=><option key={pt} value={pt}>{pt}</option>)}
+          </select>
+        </div>
+        <div className="row">
           <label>Samples</label>
           <input type="number" min={100} max={5000} value={s.samples} onChange={e=>p.set({samples: +e.target.value})}/>
         </div>
         <div className="row">
           <label>Noise</label>
-          <input type="range" min={0} max={0.5} step={0.01} value={s.noise} onChange={e=>p.set({noise: +e.target.value})}/>
+          <input type="range" min={0} max={0.5} step={0.01} value={s.noise}
+            onChange={e=>p.set({noise: +e.target.value})}/>
           <div className="small">{s.noise.toFixed(2)}</div>
         </div>
         <div className="row">
           <label>Train %</label>
-          <input type="range" min={10} max={90} step={1} value={Math.round(s.trainSplit*100)} onChange={e=>p.set({trainSplit: (+e.target.value)/100})}/>
+          <input type="range" min={10} max={90} step={1} value={Math.round(s.trainSplit*100)}
+            onChange={e=>p.set({trainSplit: (+e.target.value)/100})}/>
           <div className="small">{Math.round(s.trainSplit*100)}%</div>
         </div>
         <div className="row">
@@ -47,14 +67,19 @@ export default function Controls(p:{ s:Settings; set:(patch:Partial<Settings>)=>
             ['sinX','sin(xπ)'], ['cosX','cos(xπ)'], ['sinY','sin(yπ)'], ['cosY','cos(yπ)'],
           ].map(([k,label])=>(
             <label key={k} style={{display:'flex',gap:6,alignItems:'center'}}>
-              <input type="checkbox" checked={(s.features as any)[k]} onChange={e=>p.set({features:{...s.features,[k]: e.target.checked}})}/>
+              <input
+                type="checkbox"
+                checked={(s.features as any)[k]}
+                onChange={e=>p.set({features:{...s.features, [k]: e.target.checked}})}
+              />
               {label}
             </label>
           )) as any}
         </div>
         <div className="row">
           <label>Grid (px/cell)</label>
-          <input type="range" min={3} max={16} step={1} value={s.gridResolution} onChange={e=>p.set({gridResolution: +e.target.value})}/>
+          <input type="range" min={3} max={16} step={1} value={s.gridResolution}
+            onChange={e=>p.set({gridResolution: +e.target.value})}/>
           <div className="small">{s.gridResolution}</div>
         </div>
       </div>
@@ -71,7 +96,8 @@ export default function Controls(p:{ s:Settings; set:(patch:Partial<Settings>)=>
           {s.layers.map((u,idx)=>(
             <div key={idx} style={{display:'flex',gap:6,alignItems:'center',background:'#1a2043',padding:'6px 8px',borderRadius:8}}>
               <span className="small">L{idx+1}</span>
-              <input type="number" min={1} max={64} value={u} onChange={e=>p.onChangeLayerUnits(idx, Math.max(1, Math.min(64, +e.target.value)) )}/>
+              <input type="number" min={1} max={64} value={u}
+                onChange={e=>p.onChangeLayerUnits(idx, Math.max(1, Math.min(64, +e.target.value)))}/>
               <button className="danger" onClick={()=>p.onRemoveLayer(idx)}>−</button>
             </div>
           ))}
@@ -83,16 +109,19 @@ export default function Controls(p:{ s:Settings; set:(patch:Partial<Settings>)=>
         <h3>Training</h3>
         <div className="row">
           <label>Learning rate</label>
-          <input type="range" min={0.0005} max={0.3} step={0.0005} value={s.learningRate} onChange={e=>p.set({learningRate: +e.target.value})}/>
+          <input type="range" min={0.0005} max={0.3} step={0.0005} value={s.learningRate}
+            onChange={e=>p.set({learningRate: +e.target.value})}/>
           <div className="small">{s.learningRate.toFixed(4)}</div>
         </div>
         <div className="row">
           <label>Batch size</label>
-          <input type="number" min={4} max={512} value={s.batchSize} onChange={e=>p.set({batchSize: Math.max(4, Math.min(512, +e.target.value))})}/>
+          <input type="number" min={4} max={512} value={s.batchSize}
+            onChange={e=>p.set({batchSize: Math.max(4, Math.min(512, +e.target.value))})}/>
         </div>
         <div className="row">
           <label>L2 regularization</label>
-          <input type="range" min={0} max={0.02} step={0.0005} value={s.l2} onChange={e=>p.set({l2: +e.target.value})}/>
+          <input type="range" min={0} max={0.02} step={0.0005} value={s.l2}
+            onChange={e=>p.set({l2: +e.target.value})}/>
           <div className="small">{s.l2.toFixed(4)}</div>
         </div>
 
