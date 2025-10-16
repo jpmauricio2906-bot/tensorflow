@@ -1,5 +1,6 @@
 export type DatasetKind = 'circle' | 'xor' | 'gaussian' | 'spiral' | 'linear';
 export type ActivationKind = 'tanh' | 'relu' | 'sigmoid' | 'linear';
+export type ProblemType = 'classification' | 'regression';
 
 export interface FeaturesToggle {
   x: boolean; y: boolean; x2: boolean; y2: boolean; xy: boolean;
@@ -20,4 +21,5 @@ export interface Settings {
   features: FeaturesToggle;
   gridResolution: number;
   running: boolean;
+  problemType: ProblemType; // NEW
 }
