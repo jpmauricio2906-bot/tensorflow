@@ -65,7 +65,6 @@ export function createModel(settings: Settings, inputDim: number) {
 export function toTensors(
   xy: number[][], y: number[], feat: (x:number,y:number)=>number[]
 ){
-  const sample = feat(0,0);
   const X = tf.tensor2d(xy.map(([x1,y1]) => feat(x1,y1)), undefined, 'float32');
   const Y = tf.tensor2d(y.map(v => [v]));
   return { X, Y };

@@ -32,7 +32,7 @@ export async function drawDecision(
 
   const points: number[] = [];
   for (let r=0;r<rows;r++){
-    for(let c=0;c<cols;c++){
+    for (let c=0;c<cols;c++){
       const x = (c*cell + cell/2)/w * 2 - 1;
       const y = 1 - (r*cell + cell/2)/h * 2;
       const f = feat(x,y);
