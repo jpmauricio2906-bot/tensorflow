@@ -3,15 +3,7 @@ import * as tf from '@tensorflow/tfjs'
 import { clear, drawDecision, drawPoints } from '../lib/draw'
 import type { Settings } from '../types'
 
-interface Props {
-  settings: Settings;
-  model: tf.LayersModel | null;
-  data: { xs:number[][], ys:number[] } | null;
-  splitIndex: number;
-  status: string;
-}
-
-export default function CanvasView({ settings, model, data, splitIndex, status }: Props){
+export default function CanvasView({ settings, model, data, splitIndex, status }:{ settings:Settings; model:tf.LayersModel|null; data:{xs:number[][], ys:number[]} | null; splitIndex:number; status:string; }){
   const canvasRef = useRef<HTMLCanvasElement|null>(null)
 
   useEffect(()=>{
