@@ -20,6 +20,7 @@ const defaultSettings: Settings = {
   features: { x:true, y:true, xy:false, x2:false, y2:false, sinX:false, cosX:false, sinY:false, cosY:false },
   gridResolution: 8,
   running: false,
+  problemType: 'classification', // NEW
 }
 
 function makeData(s: Settings){
@@ -29,6 +30,15 @@ function makeData(s: Settings){
     case 'gaussian': return genGaussian(s.samples, s.noise)
     case 'spiral': return genSpiral(s.samples, s.noise)
     default: return genLinear(s.samples, s.noise)
+  }
+}
+
+// Fisher–Yates shuffle utility to ensure **random spatial distribution**
+function shuffleInUnison(xs: number[][], ys: number[]) {
+  for (let i = xs.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [xs[i], xs[j]] = [xs[j], xs[i]];
+    [ys[i], ys[j]] = [ys[j], ys[i]];
   }
 }
 
@@ -43,8 +53,14 @@ export default function App(){
 
   const regenData = React.useCallback(()=>{
     const d = makeData(s)
-    const split = Math.floor(d.xs.length * s.trainSplit)
-    setData(d); setSplitIdx(split)
+
+    // NEW: randomize order so train/test are evenly distributed on the chart
+    const xs = d.xs.slice()
+    const ys = d.ys.slice()
+    shuffleInUnison(xs, ys)
+
+    const split = Math.floor(xs.length * s.trainSplit)
+    setData({ xs, ys }); setSplitIdx(split)
   }, [s.dataset, s.samples, s.noise, s.trainSplit])
 
   const rebuildModel = React.useCallback(()=>{
@@ -52,17 +68,17 @@ export default function App(){
     const dim = featureDim(s.features)
     const m = createModel(s, dim)
     setModel(m); epochRef.current = 0
-  }, [s.layers.join(','), s.activation, s.learningRate, s.l2, s.features])
+  }, [s.layers.join(','), s.activation, s.learningRate, s.l2, s.features, s.problemType])
 
   useEffect(()=>{ regenData() }, []) // initial
   useEffect(()=>{ rebuildModel() }, [])
 
   useEffect(()=>{ regenData() }, [s.dataset, s.samples, s.noise, s.trainSplit])
-  useEffect(()=>{ rebuildModel() }, [s.layers, s.activation, s.learningRate, s.l2, s.features])
+  useEffect(()=>{ rebuildModel() }, [s.layers, s.activation, s.learningRate, s.l2, s.features, s.problemType])
 
   useEffect(()=>{
     if (!s.running || !model || !data) return
-    const m = model as tf.LayersModel   // assert non-null after guard
+    const m = model as tf.LayersModel
     const feat = makeFeatureFn(s.features)
     const trainXY = data.xs.slice(0, splitIdx)
     const trainY  = data.ys.slice(0, splitIdx)
@@ -73,13 +89,22 @@ export default function App(){
       const h = await m.fit(X, Y, { epochs: 1, batchSize: s.batchSize, shuffle: true, verbose: 0 })
       epochRef.current += 1
       const loss = (h.history.loss?.[0] as number)?.toFixed(4)
-      const acc = (h.history.acc?.[0] as number | undefined)
-      setStatus(`epoch ${epochRef.current}  |  loss ${loss}${acc!==undefined?`  |  acc ${(acc*100).toFixed(1)}%`:''}`)
+      // Show metric based on problem type
+      const metricKey = s.problemType === 'classification' ? 'acc' : 'mse'
+      const metricVal = (h.history[metricKey as keyof typeof h.history]?.[0] as number | undefined)
+      const metricStr = metricVal !== undefined
+        ? (s.problemType === 'classification' ? `${(metricVal*100).toFixed(1)}%` : metricVal.toFixed(4))
+        : '—'
+      setStatus(
+        s.problemType === 'classification'
+          ? `epoch ${epochRef.current}  |  loss ${loss}  |  acc ${metricStr}`
+          : `epoch ${epochRef.current}  |  loss ${loss}  |  mse ${metricStr}`
+      )
       if (s.running) trainLoopRef.current = requestAnimationFrame(step)
     }
     trainLoopRef.current = requestAnimationFrame(step)
     return ()=>{ cancelled = true; if (trainLoopRef.current) cancelAnimationFrame(trainLoopRef.current); X.dispose(); Y.dispose() }
-  }, [s.running, model, data, splitIdx, s.batchSize, s.features])
+  }, [s.running, model, data, splitIdx, s.batchSize, s.features, s.problemType])
 
   const set = (patch: Partial<Settings>) => setS(prev => ({...prev, ...patch}))
   const onAddLayer = () => setS(prev=>({...prev, layers: [...prev.layers, 4]}))
